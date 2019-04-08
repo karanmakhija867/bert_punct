@@ -1,0 +1,126 @@
+{% extends 'layout.html' %}
+
+
+{% block body %}
+	<div class='container'>
+		<h1> Sentence Unit Detection </h1>
+		<form method="post" id="form">
+			<div class="form-row">
+				<div class="col-3">
+					<label for="lang">Language:</label>
+					<select class="form-control" id="lang">
+						<option value="English">English</option>
+						<option value="Malay">Malay</option>
+					  	<option value="Mandarin">Mandarin</option>
+					 </select>
+				</div>
+				<div class="col-4">
+					<label for="model">Model:</label>
+					<select class="form-control" id="model">
+						<option value="BERT_PUNCT">BERT_PUNCT</option>
+						
+					</select>
+				</div>
+			</div>
+			<div class="custom-control custom-radio custom-control-inline">
+ 				<input type="radio" id="onlineButton" name="algoButton" class="custom-control-input">
+ 				<label class="custom-control-label" for="onlineButton">Online</label>
+			</div>
+			<div class="custom-control custom-radio custom-control-inline">
+			  	<input type="radio" id="offlineButton" name="algoButton" class="custom-control-input">
+			  	<label class="custom-control-label" for="offlineButton">Offline</label>
+			</div>
+			<div class="form-group">
+				<label for="input_text">Enter sentence:</label>
+				<textarea class="form-control" rows="5" id="input_text"></textarea>
+			</div>
+			<div class="form-group">
+				<label for="output_text">Output:</label>
+				<div id="editor"></div>
+				<!-- <textarea readonly class="form-control" rows="5" id="output_text"></textarea> -->
+			</div>
+			<button type="button" id="punctuate" class="btn btn-primary">Punctuate</button>
+		</form>
+	</div>
+		<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+		<script>
+
+			$( document ).ready(function() {
+    			$('#onlineButton').attr('checked', 'checked');
+    			formatTextOnline();	
+			});
+			
+
+			function formatTextOffline() {
+				$('#input_text').val('');
+				$('#editor').html('');
+				$('#input_text').off('keyup');
+				$('#punctuate').removeAttr("disabled");
+				$('#punctuate').on('click',function(){
+					$.ajax({
+		        	method: 'POST',
+		        	url: {{ url_for('punctuate')|tojson }},
+		        	data: {input_text:$('#input_text').val()}
+		      		}).done(addShow);
+				});
+
+			}
+
+			function formatTextOnline() {
+
+				$('#input_text').val('');
+				$('#editor').html('');
+				$('#punctuate').off('click');
+				$('#punctuate').attr("disabled", "disabled");
+				
+				$('#input_text').on('keyup',function(){
+					
+					$.ajax({
+			        	method: 'POST',
+			        	url: {{ url_for('punctuate')|tojson }},
+			        	data: {input_text:$(this).val()}
+			      	}).done(addShow);
+			    
+			    });
+				
+			}
+
+			function addShow(data) {
+		    	var result = data.result;
+		    	var color1 =  "<span style='background-color:green;'>";
+		    	var color2 =  "<span style='background-color:orange;'>";
+		    	var color3 =  "<span style='background-color:red;'>";
+		    	var displayText = "";
+		    	var regexp = /(?<=[a-z])[\,\.\?]$|(?<=[a-z])[\,\.\?](?=\s)/g;
+
+				var match, matches = [];
+		    	while ((match = regexp.exec(result)) != null) {
+ 					matches.push(match.index);
+ 					
+    			}
+
+    			var start = 0;
+    			for(i = 0; i < matches.length; i++){
+      				
+      				if(i%2==0){
+      					displayText += color1 + result.substring(start,matches[i]) + "</span>";
+      					
+					}
+					else{
+						displayText += color2 + result.substring(start,matches[i]) + "</span>";
+      					
+					}
+
+					displayText += color3 + result.substring(matches[i], matches[i]+1) + "</span>";
+					start = matches[i]+1;
+				}
+				$('#editor').html(displayText);
+		    }
+		    
+
+			$('#offlineButton').on('change',formatTextOffline)
+		    $('#onlineButton').on('change',formatTextOnline)
+		    
+		    //$('#form').on('submit', addSubmit);
+		</script>
+{% endblock %}
