@@ -14,7 +14,7 @@ Download the weights and vocabulary file for the uncased base version of BERT
 Refer to [this](DEPLOY.md)
 
 ## Results
-![Screenshot](Results.png)
+![Screenshot](Results.jpg)
 
 
 
