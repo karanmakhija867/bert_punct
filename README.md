@@ -8,6 +8,7 @@ Ensure that tensorflow and bert-tensorflow packages are installed
 Download the weights and vocabulary file for the uncased base version of BERT 
 
 ## Architecture
+![alt text](https://raw.githubusercontent.com/panda-baba/bert-punct/model.png)
 
 
 
