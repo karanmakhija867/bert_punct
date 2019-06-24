@@ -9,6 +9,7 @@ Take the files and folders from export directory. This includes:
  
  Create the following file structure **models_for_serving/bert_punct/1** and store the files in that folder.
  > mkdir -p ./model_for_serving/bert_punct/1
+ 
  > cp -R ./export_model/1529121297/ ./models_for_serving/bert_punct/1
 
 Ensure you have docker and clone the tensorflow serving docker image 
