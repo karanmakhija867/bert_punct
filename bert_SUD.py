@@ -17,7 +17,7 @@ flags = tf.flags
 FLAGS = flags.FLAGS 
 
 flags.DEFINE_string(
-	"data_dir", "./raw_data",
+	"data_dir", "./iwslt_data",
 	"The input datadir. ex) 'NERdata'"
 )
 
@@ -99,7 +99,7 @@ flags.DEFINE_float(
 )
 
 flags.DEFINE_float(
-	"bert_dropout_rate", 0.2,
+	"bert_dropout_rate", 0.1,
 	"Proportion of dropout for bert"
 )
 
@@ -114,7 +114,7 @@ flags.DEFINE_integer(
 )
 
 flags.DEFINE_float(
-	"lstm_dropout_rate", 0.2,
+	"lstm_dropout_rate", 0.1,
 	"Proportion of dropout for lstm"
 )
 
@@ -280,6 +280,9 @@ class NerProcessor(object):
 				data["label"].append(line.strip())
 		
 		return data
+
+
+
 
 def convert_feature_to_tf_example(feature):
 	
@@ -516,14 +519,14 @@ def convert_example_to_features(example, label_list, max_seq_length, tokenizer, 
 			
 			tokens.append(bert_token)
 			segment_ids.append(0)
-			label_ids.append(label_map["[pad"])
+			label_ids.append(label_map["[pad]"])
 			
-			if j == len(bert_token)-1:
+			if j == len(bert_tokens)-1:
 				#mark the last token as relevant
 				label_mask.append(1)	
 			else:
 				#mark rest of the tokens as irrelevant
-				label_ids.append(0)
+				label_mask.append(0)
 
 			if len(tokens) == max_seq_length-1:
 				assert len(tokens) ==  len(label_ids) ,"#words: %d; #punctuations: %d" \
@@ -541,6 +544,7 @@ def convert_example_to_features(example, label_list, max_seq_length, tokenizer, 
 				assert len(input_mask) == max_seq_length
 				assert len(segment_ids) == max_seq_length
 				assert len(label_ids) == max_seq_length
+				assert len(label_mask) == max_seq_length
 
 				feature = InputFeatures(
 					input_ids=input_ids,
@@ -552,7 +556,7 @@ def convert_example_to_features(example, label_list, max_seq_length, tokenizer, 
 				return tf_example, label_mask	
 
 	
-	if len(tokens) > 2:
+	if len(tokens) > 0:
 		tokens.append("[SEP]")
 		segment_ids.append(0)
 		label_ids.append(label_map["[pad]"])
@@ -572,14 +576,15 @@ def convert_example_to_features(example, label_list, max_seq_length, tokenizer, 
 			input_ids=input_ids,
 			input_mask=input_mask,
 			segment_ids=segment_ids,
-			label_ids=label_ids,
+			label_ids=label_ids
 		)
 
 		assert len(input_ids) == max_seq_length
 		assert len(input_mask) == max_seq_length
 		assert len(segment_ids) == max_seq_length
 		assert len(label_ids) == max_seq_length
-			
+		assert len(label_mask) == max_seq_length
+
 		tf_example = convert_feature_to_tf_example(feature)
 		
 	return tf_example, label_mask
@@ -615,9 +620,11 @@ def file_based_input_fn_builder(input_file, seq_length, is_training, drop_remain
 	def input_fn(params):
 		batch_size = params["batch_size"]
 		d = tf.data.TFRecordDataset(input_file)
+
 		if is_training:
 			d = d.repeat()
 			d = d.shuffle(buffer_size=100)
+
 		d = d.apply(tf.data.experimental.map_and_batch(
 			lambda record: _decode_record(record, name_to_feature),
 			batch_size = batch_size,
@@ -838,11 +845,11 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, starter_learning_
 				label_ids = tf.boolean_mask(label_ids, input_mask)
 				predicted_labels = tf.boolean_mask(predicted_labels, input_mask)
 				
-				precision = tf_metrics.precision(label_ids, predicted_labels, num_labels, [1,2],
+				precision = tf_metrics.precision(label_ids, predicted_labels, num_labels, [1,2,3],
 												 average="macro")
-				recall = tf_metrics.recall(label_ids, predicted_labels, num_labels, [1,2],
+				recall = tf_metrics.recall(label_ids, predicted_labels, num_labels, [1,2,3],
 												 average="macro")
-				f1 = tf_metrics.f1(label_ids, predicted_labels, num_labels, [1,2],
+				f1 = tf_metrics.f1(label_ids, predicted_labels, num_labels, [1,2,3],
 												 average="macro")
 				
 		
@@ -868,8 +875,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, starter_learning_
 					'labels': predicted_labels
 				}
 				output_spec = tf.estimator.EstimatorSpec(mode=mode,
-					predictions=predictions,
-					eval_metric_ops=eval_metrics)
+					predictions=predictions)
 
 		return output_spec
 		
@@ -926,8 +932,6 @@ def main(_):
 		num_train_steps = int((num_train_size/FLAGS.batch_size)*FLAGS.num_epochs)
 		num_warmup_steps = int(num_train_steps * FLAGS.warmup_proportion)
 	
-		num_train_steps = 1000
-		num_warmup_steps = 100
 
 	model_fn = model_fn_builder(
 		bert_config=bert_config,
@@ -1019,9 +1023,7 @@ def main(_):
 			drop_remainder=False)
 
 		
-		predicted_result = estimator.predict(input_fn=predict_input_fn)
-		for x in predicted_result:
-			print(x)
+		predicted_result = estimator.evaluate(input_fn=predict_input_fn)
 		output_eval_file = os.path.join(FLAGS.output_dir, "predicted_results.txt")
 		#Writing the results of the validation set
 		with open(output_eval_file, "w") as writer:
