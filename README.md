@@ -1,2 +1,9 @@
 # bert_punct
-Punctuation restoration in ASR text 
+Implementation of Punctuation Restoration on ASR text for English. We are using the pretrained BERT-embeddings for the task. On top of that we employ that the standard BiLSTM-CRF architecture that has been sucessfully applied to many NLP tasks. The implement is done using the estimator api of tensorflow.
+
+
+# Packages
+Ensure that tensorflow and bert-tensorflow is installed
+
+
+
