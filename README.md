@@ -3,7 +3,7 @@ Implementation of Punctuation Restoration on ASR text for English. We are using 
 
 
 # Packages
-Ensure that tensorflow and bert-tensorflow is installed
+Ensure that tensorflow and bert-tensorflow packages are installed
 
 
 
