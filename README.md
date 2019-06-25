@@ -19,6 +19,14 @@ Refer to [this](DEPLOY.md)
 ## Results
 ![Screenshot](Results.jpg)
 
+## References 
+> Evaluation codes from https://github.com/guillaumegenthial/tf_metrics
+> Pretrained BERT embeddings from https://github.com/google-research/bert
+> https://github.com/macanv/BERT-BiLSTM-CRF-NER
+> https://github.com/dsindex/etagger
+
+
+
 
 
 
